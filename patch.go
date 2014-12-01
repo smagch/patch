@@ -61,7 +61,7 @@ func newField(v reflect.StructField) (f *structField, propName string) {
 	}
 	jsonTagName := trimCommaLeft(v.Tag.Get("json"))
 	if jsonTagName != "" {
-		if jsonTagName == "_" {
+		if jsonTagName == "-" {
 			return
 		}
 		propName = jsonTagName

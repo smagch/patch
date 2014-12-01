@@ -12,7 +12,8 @@ import (
 
 var (
 	// ErrNoInput is an error for empty JSON  input
-	ErrNoInput = &ValidationError{Err: errors.New("There is no input")}
+	ErrNoInput         = &ValidationError{Err: errors.New("There is no input")}
+	ErrInvalidProperty = errors.New("Invalid property")
 )
 
 var drivers = map[string]Driver{
@@ -68,9 +69,15 @@ func newField(v reflect.StructField) (f *structField, propName string) {
 	} else {
 		propName = v.Name
 	}
+
+	patchName := v.Tag.Get("patch")
+	if patchName == "-" {
+		return
+	}
+
 	f = new(structField)
-	if name := v.Tag.Get("patch"); name != "" {
-		f.columnName = name
+	if patchName != "" {
+		f.columnName = patchName
 	} else {
 		f.columnName = propName
 	}
@@ -224,8 +231,8 @@ func (p Patcher) Parse(src []byte) (*Data, error) {
 		f, ok := p.fields[prop]
 		if !ok {
 			return nil, &ValidationError{
-				Key:    prop,
-				reason: "Unexpected object property",
+				Key: prop,
+				Err: ErrInvalidProperty,
 			}
 		}
 		v, err := f.dec.Decode(msg)

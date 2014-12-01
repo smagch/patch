@@ -68,6 +68,37 @@ func ParseWeekday(str string) (d Weekday, err error) {
 	return
 }
 
+func TestInvalidProperties(t *testing.T) {
+	type user struct {
+		JsonIgnore  int `json:"-"`
+		PatchIgnore int `patch:"-"`
+		Id          int
+	}
+	p := New("postgres", user{})
+
+	testCases := []struct {
+		body string
+		key  string
+	}{
+		{`{"Id": 100, "JsonIgnore": 1}`, "JsonIgnore"},
+		{`{"PatchIgnore": 1000}`, "PatchIgnore"},
+	}
+
+	for i, tc := range testCases {
+		_, err := p.Parse([]byte(tc.body))
+		v, ok := err.(*ValidationError)
+		if !ok {
+			t.Fatal(i, "Expected ValidationError")
+		}
+		if tc.key != v.Key {
+			t.Error(i, "Unexpected Key: ", v.Key, " want ", tc.key)
+		}
+		if v.Err != ErrInvalidProperty {
+			t.Error(i, "Expected ErrInvalidProperty. got ", v.Err)
+		}
+	}
+}
+
 func TestNew(t *testing.T) {
 	type user struct {
 		Id          int

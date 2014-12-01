@@ -59,6 +59,43 @@ type TemplateData struct {
 	Bind string
 }
 
+func (d *Data) Len() int {
+	return len(d.columns)
+}
+
+func (d *Data) Has(name string) bool {
+	for _, n := range d.columns {
+		if name == n {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *Data) getIndex(name string) (interface{}, int) {
+	for i, n := range d.columns {
+		if name == n {
+			return d.args[i], i
+		}
+	}
+	return nil, -1
+}
+
+func (d *Data) Remove(name string) interface{} {
+	v, index := d.getIndex(name)
+	if index == -1 {
+		return nil
+	}
+	d.columns = append(d.columns[:index], d.columns[index+1:]...)
+	d.args = append(d.args[:index], d.args[index+1:]...)
+	return v
+}
+
+func (d *Data) Get(name string) interface{} {
+	v, _ := d.getIndex(name)
+	return v
+}
+
 // Query executes the given template with the args
 func (d *Data) Query(tmpl *template.Template, args ...interface{}) (string, error) {
 	d.postArgs = args

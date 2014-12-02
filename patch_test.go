@@ -102,11 +102,13 @@ func TestInvalidProperties(t *testing.T) {
 func TestNew(t *testing.T) {
 	type user struct {
 		Id          int
-		Name        string   `json:"name"`
-		Email       string   `json:"email" patch:"email_address"`
-		Active      bool     `patch:"active"`
-		Day         Weekday  `json:"day"`
-		DayPtr      *Weekday `json:"day_ptr"`
+		Name        string     `json:"name"`
+		Email       string     `json:"email" patch:"email_address"`
+		Active      bool       `patch:"active"`
+		Day         Weekday    `json:"day"`
+		DayPtr      *Weekday   `json:"day_ptr"`
+		Span        [2]Weekday `json:"span"`
+		Days        []Weekday  `json:"days"`
 		NullableInt *int
 	}
 	p := New("postgres", user{})
@@ -124,7 +126,7 @@ func TestNew(t *testing.T) {
 		},
 		{
 			`{"NullableInt": null}`,
-			map[string]interface{}{"NullableInt": nil},
+			map[string]interface{}{"NullableInt": (*int)(nil)},
 		},
 		{
 			`{"Id": 1}`,
@@ -137,6 +139,14 @@ func TestNew(t *testing.T) {
 		{
 			`{"day_ptr":"friday"}`,
 			map[string]interface{}{"day_ptr": Friday},
+		},
+		{
+			`{"span": ["sunday", "wednesday"]}`,
+			map[string]interface{}{"span": [2]Weekday{Sunday, Wednesday}},
+		},
+		{
+			`{"days": ["sunday", "monday", "friday", "saturday"]}`,
+			map[string]interface{}{"days": []Weekday{Sunday, Monday, Friday, Saturday}},
 		},
 	}
 

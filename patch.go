@@ -81,69 +81,27 @@ func newField(v reflect.StructField) (f *structField, propName string) {
 	} else {
 		f.columnName = propName
 	}
-	f.dec = getUnmarshaler(v.Type)
+
+	f.dec = &fieldDecoder{v.Type}
 	return f, propName
 }
 
-type unmarshalerDecoder struct {
+type fieldDecoder struct {
 	typ reflect.Type
 }
 
-func (dec *unmarshalerDecoder) Decode(b []byte) (interface{}, error) {
-	u := reflect.New(dec.typ.Elem()).Interface().(json.Unmarshaler)
-	if err := u.UnmarshalJSON(b); err != nil {
+func (dec *fieldDecoder) Decode(b []byte) (interface{}, error) {
+	v := reflect.New(dec.typ).Interface()
+	if err := json.Unmarshal(b, v); err != nil {
 		return nil, err
 	}
-	return u, nil
-}
-
-type unmarshalerPtrDecoder struct {
-	typ reflect.Type
-}
-
-func (dec *unmarshalerPtrDecoder) Decode(b []byte) (interface{}, error) {
-	u := reflect.New(dec.typ).Interface().(json.Unmarshaler)
-	if err := u.UnmarshalJSON(b); err != nil {
-		return nil, err
-	}
-	return reflect.ValueOf(u).Elem().Interface(), nil
-}
-
-type defaultDecoder struct {
-	typ reflect.Type
-}
-
-func (dec *defaultDecoder) Decode(b []byte) (interface{}, error) {
-	v := reflect.Zero(dec.typ).Interface()
-	if err := json.Unmarshal(b, &v); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-func getUnmarshaler(typ reflect.Type) decoder {
-	if typ.Kind() == reflect.Ptr {
-		_, ok := reflect.New(typ.Elem()).Interface().(json.Unmarshaler)
-		if ok {
-			return &unmarshalerDecoder{typ}
-		}
-	}
-	_, ok := reflect.New(typ).Interface().(json.Unmarshaler)
-	if ok {
-		return &unmarshalerPtrDecoder{typ}
-	}
-	// TODO slice or map could possibly unmarshal without using a pointer receiver
-	// _, ok := reflect.Zero(typ).Interface().(json.Unmarshaler)
-	if dec, ok := numberDecoders[typ.Kind()]; ok {
-		return dec
-	}
-	return &defaultDecoder{typ}
+	return reflect.ValueOf(v).Elem().Interface(), nil
 }
 
 // structField
 type structField struct {
 	columnName string
-	dec        decoder
+	dec        *fieldDecoder
 }
 
 // Patcher
@@ -151,6 +109,8 @@ type Patcher struct {
 	fields map[string]*structField
 	driver Driver
 }
+
+type Replacer func(src interface{}) (interface{}, error)
 
 // trimCommaLeft omits strings after ","
 func trimCommaLeft(s string) string {
@@ -161,20 +121,12 @@ func trimCommaLeft(s string) string {
 	return s
 }
 
-// decoder is the interface of unmarshalling of json object
-type decoder interface {
-	Decode(b []byte) (interface{}, error)
-}
-
 // parseStruct
 func parseStruct(src interface{}) map[string]*structField {
 	typ := reflect.TypeOf(src)
 	fields := make(map[string]*structField)
 	for i := 0; i < typ.NumField(); i++ {
 		v := typ.Field(i)
-		// if it's a pointer type, then v.(json.Marshaler)
-		// if it's not a pointer, examine its pointerV.(json.Marshaler)
-		// if either has marshaler interface, then
 		f, propName := newField(v)
 		if f != nil {
 			fields[propName] = f
@@ -194,26 +146,6 @@ func New(driverName string, src interface{}) *Patcher {
 		fields: parseStruct(src),
 		driver: d,
 	}
-}
-
-// numberDecoders decodes Numbers except for Float64
-// TODO Int8, Int16, Int32, Int64, Uint, Unit8, Uint16, Uint32, Uint64, Float32
-var numberDecoders = map[reflect.Kind]decoder{
-	reflect.Int: decoderFunc(decodeInt),
-}
-
-type decoderFunc func(b []byte) (interface{}, error)
-
-// Decode just calls f
-func (f decoderFunc) Decode(b []byte) (interface{}, error) {
-	return f(b)
-}
-
-// decodeInt decode the given byte to int.
-func decodeInt(b []byte) (interface{}, error) {
-	var i int
-	err := json.Unmarshal(b, &i)
-	return i, err
 }
 
 // Parse decodes the given byte

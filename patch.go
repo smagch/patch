@@ -102,6 +102,7 @@ func (dec *fieldDecoder) Decode(b []byte) (interface{}, error) {
 type structField struct {
 	columnName string
 	dec        *fieldDecoder
+	callback   Callback
 }
 
 // Patcher
@@ -110,7 +111,18 @@ type Patcher struct {
 	driver Driver
 }
 
-type Replacer func(src interface{}) (interface{}, error)
+// Callback transforms data with the given input
+type Callback func(src interface{}) (interface{}, error)
+
+// On register a replacer function with the given json property name
+func (p *Patcher) On(jsonProp string, fn Callback) *Patcher {
+	f, ok := p.fields[jsonProp]
+	if !ok {
+		panic("Cannot listen to invalid property name: " + jsonProp)
+	}
+	f.callback = fn
+	return p
+}
 
 // trimCommaLeft omits strings after ","
 func trimCommaLeft(s string) string {
@@ -170,6 +182,12 @@ func (p Patcher) Parse(src []byte) (*Data, error) {
 		v, err := f.dec.Decode(msg)
 		if err != nil {
 			return nil, &ValidationError{Err: err, Key: prop, reason: "Decode Error"}
+		}
+		if f.callback != nil {
+			v, err = f.callback(v)
+			if err != nil {
+				return nil, &ValidationError{Err: err, Key: prop, reason: "ReplacerError"}
+			}
 		}
 		data.columns[i] = f.columnName
 		data.args[i] = v

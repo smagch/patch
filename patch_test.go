@@ -3,6 +3,7 @@ package patch
 import (
 	"errors"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -110,8 +111,11 @@ func TestNew(t *testing.T) {
 		Span        [2]Weekday `json:"span"`
 		Days        []Weekday  `json:"days"`
 		NullableInt *int
+		Replacable  int `json:"rep" patch:"rep_str"`
 	}
-	p := New("postgres", user{})
+	p := New("postgres", user{}).On("rep", func(src interface{}) (interface{}, error) {
+		return strconv.Itoa(src.(int)), nil
+	})
 	testCases := []struct {
 		body string
 		args map[string]interface{}
@@ -147,6 +151,10 @@ func TestNew(t *testing.T) {
 		{
 			`{"days": ["sunday", "monday", "friday", "saturday"]}`,
 			map[string]interface{}{"days": []Weekday{Sunday, Monday, Friday, Saturday}},
+		},
+		{
+			`{"rep": 101}`,
+			map[string]interface{}{"rep_str": "101"},
 		},
 	}
 

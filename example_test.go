@@ -24,7 +24,7 @@ func ExamplePatcher_Unmarshal() {
 	// Name,Active
 }
 
-func ExamplePatcher_Remove() {
+func ExampleFields_Remove() {
 	type User struct {
 		ID    int    `json:"id"`
 		Name  string `json:"name"`
@@ -46,7 +46,7 @@ func ExamplePatcher_Remove() {
 	// [gopher]
 }
 
-func ExamplePatcher_Set() {
+func ExampleFields_Set() {
 	type Article struct {
 		ID     int    `json:"id"`
 		UserID int    `json:"user_id"`

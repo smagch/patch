@@ -84,11 +84,11 @@ type structField struct {
 
 // unmarshal takes the given bytes to its type.
 func (f *structField) unmarshal(b []byte) (interface{}, error) {
-	v := reflect.New(f.typ).Interface()
-	if err := json.Unmarshal(b, v); err != nil {
+	v := reflect.New(f.typ)
+	if err := json.Unmarshal(b, v.Interface()); err != nil {
 		return nil, err
 	}
-	return reflect.ValueOf(v).Elem().Interface(), nil
+	return v.Elem().Interface(), nil
 }
 
 // Patcher is a json parser that takes fileds partially.

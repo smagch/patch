@@ -2,6 +2,7 @@
 
 JSON marshaler to work well with HTTP `PATCH` method.
 
+[![GoDoc](https://godoc.org/github.com/smagch/patch?status.svg)](https://godoc.org/github.com/smagch/patch)
 [![Build Status](https://travis-ci.org/smagch/patch.svg)](https://travis-ci.org/smagch/patch)
 
 Unmarshalling JSON that has partial json properties is a bit tricky when you

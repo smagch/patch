@@ -1,6 +1,8 @@
 # patch
 
-A library to work well with HTTP `PATCH` method.
+JSON marshaler to work well with HTTP `PATCH` method.
+
+[![Build Status](https://travis-ci.org/smagch/patch.svg)](https://travis-ci.org/smagch/patch)
 
 Unmarshalling JSON that has partial json properties is a bit tricky when you
 work with a `PATCH` API in golang. Because fields are set to zero value even if
